@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Konobar & Poslovođa</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        .chat-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-scroll::-webkit-scrollbar-thumb {
+            background-color: #334155;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between max-w-md mx-auto border-x border-slate-800 shadow-2xl bg-slate-950">
+
+    <!-- Header / Navigacija Režima -->
+    <header class="p-4 bg-slate-900/90 backdrop-blur border-b border-slate-800 sticky top-0 z-50">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-lg border border-amber-500/30">
+                    <i class="fa-solid fa-utensils"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-sm leading-none text-slate-100">Restoran "Gusto"</h1>
+                    <span id="role-subtitle" class="text-xs text-amber-400 font-medium">AI Konobar na usluzi</span>
+                </div>
+            </div>
+            <button onclick="openSettings()" class="text-slate-400 hover:text-slate-200 p-2 text-lg">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+        </div>
+
+        <!-- Tabovi za prebacivanje uloge -->
+        <div class="flex bg-slate-950 p-1 rounded-xl mt-3 border border-slate-800 text-xs font-semibold">
+            <button id="tab-waiter" onclick="switchTab('waiter')" class="flex-1 py-2 rounded-lg bg-amber-500 text-slate-950 transition-all flex items-center justify-center space-x-1">
+                <i class="fa-solid fa-concierge-bell"></i>
+                <span>Gost / Konobar</span>
+            </button>
+            <button id="tab-manager" onclick="switchTab('manager')" class="flex-1 py-2 rounded-lg text-slate-400 hover:text-slate-200 transition-all flex items-center justify-center space-x-1">
+                <i class="fa-solid fa-user-tie"></i>
+                <span>Poslovođa</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- POGLED 1: GOST / AI KONOBAR -->
+    <main id="view-waiter" class="flex-1 flex flex-col p-4 space-y-4 overflow-hidden">
+        
+        <!-- Brzi Meni Kartice -->
+        <div class="flex space-x-2 overflow-x-auto pb-2 text-xs no-scrollbar">
+            <button onclick="sendQuickPrompt('Šta imate od specijaliteta kuće?')" class="whitespace-nowrap px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-slate-300 hover:border-amber-500/50">
+                ✨ Specijaliteti
+            </button>
+            <button onclick="sendQuickPrompt('Imate li posna ili veganska jela?')" class="whitespace-nowrap px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-slate-300 hover:border-amber-500/50">
+                🌱 Posno / Veganski
+            </button>
+            <button onclick="sendQuickPrompt('Šta preporučujete za desert?')" class="whitespace-nowrap px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-slate-300 hover:border-amber-500/50">
+                🍰 Deserti
+            </button>
+            <button onclick="sendQuickPrompt('Pozovi konobara za sto 4')" class="whitespace-nowrap px-3 py-1.5 rounded-full bg-red-950/40 border border-red-800/40 text-red-300">
+                🔔 Pozovi konobara
+            </button>
+        </div>
+
+        <!-- Chat sa Konobarom -->
+        <div id="waiter-chat" class="flex-1 overflow-y-auto chat-scroll space-y-3 pr-1 text-sm">
+            <div class="flex items-start space-x-2">
+                <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs mt-1 border border-amber-500/30">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 max-w-[85%] text-slate-200">
+                    Dobar dan! Ja sam Vaš digitalni konobar. Slobodno me pitajte za preporuku jela, sastojke, vina ili ako želite nešto da naručite! 🍽️
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Polje -->
+        <div class="pt-2">
+            <form onsubmit="handleUserMessage(event)" class="flex items-center space-x-2">
+                <input id="user-input" type="text" placeholder="Pitajte konobara ili naručite..." 
+                    class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 focus:outline-none focus:border-amber-500 transition">
+                <button type="submit" class="w-11 h-11 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl flex items-center justify-center transition font-bold">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <!-- POGLED 2: POSLOVOĐA DASHBOARD -->
+    <main id="view-manager" class="flex-1 p-4 space-y-4 hidden overflow-y-auto chat-scroll">
+        
+        <!-- Statistika Restorana -->
+        <div class="grid grid-cols-2 gap-3">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3">
+                <span class="text-xs text-slate-400 block">Danas narudžbi</span>
+                <span class="text-xl font-bold text-emerald-400">42</span>
+                <span class="text-[10px] text-slate-500 block mt-1">+12% u odnosu na juče</span>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3">
+                <span class="text-xs text-slate-400 block">Prosečan račun</span>
+                <span class="text-xl font-bold text-amber-400">2.450 RSD</span>
+                <span class="text-[10px] text-slate-500 block mt-1">Najtraženije: Teleći ćevapi</span>
+            </div>
+        </div>
+
+        <!-- AI Asistent za Menadžment -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
+            <h2 class="text-sm font-bold text-slate-200 flex items-center space-x-2">
+                <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i>
+                <span>AI Poslovođa Komande</span>
+            </h2>
+            <div class="grid grid-cols-1 gap-2 text-xs">
+                <button onclick="askManagerAI('Napiši privlačnu objavu za Instagram za današnji dnevni meni (Teleća čorba + Biftek + Panna Cotta).')" class="p-2.5 bg-slate-950 border border-slate-800 rounded-lg text-left text-slate-300 hover:border-amber-500/50 flex justify-between items-center">
+                    <span>📲 Generiši objavu za društvene mreže</span>
+                    <i class="fa-solid fa-chevron-right text-slate-600"></i>
+                </button>
+                <button onclick="askManagerAI('Gost se žalio da je piletina bila hladna. Napiši profesionalan i ljubazan odgovor sa ponudom besplatnog deserta.')" class="p-2.5 bg-slate-950 border border-slate-800 rounded-lg text-left text-slate-300 hover:border-amber-500/50 flex justify-between items-center">
+                    <span>✉️ Reši prigovor nezadovoljnog gosta</span>
+                    <i class="fa-solid fa-chevron-right text-slate-600"></i>
+                </button>
+                <button onclick="askManagerAI('Predloži 3 nova letnja koktela sa visokom maržom za predstojeći vikend.')" class="p-2.5 bg-slate-950 border border-slate-800 rounded-lg text-left text-slate-300 hover:border-amber-500/50 flex justify-between items-center">
+                    <span>🍹 Predlog novih profitabilnih pića</span>
+                    <i class="fa-solid fa-chevron-right text-slate-600"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Output za Poslovođu -->
+        <div id="manager-output-box" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-xs text-slate-300 space-y-2 hidden">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                <span class="font-bold text-amber-400">Izveštaj / Odgovor Poslovođe:</span>
+                <button onclick="document.getElementById('manager-output-box').classList.add('hidden')" class="text-slate-500 hover:text-slate-300">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div id="manager-output-text" class="leading-relaxed whitespace-pre-line"></div>
+        </div>
+    </main>
+
+    <!-- MODAL ZA PODEŠAVANJA / API KEY -->
+    <div id="settings-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 w-full max-w-sm space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-sm text-slate-100">Podešavanja AI Ključa</h3>
+                <button onclick="closeSettings()" class="text-slate-400 hover:text-slate-200">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-2 text-xs">
+                <label class="block text-slate-300 font-medium">Google Gemini API Key (Opciono)</label>
+                <input id="api-key-input" type="password" placeholder="AIzaSy..." 
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 focus:outline-none focus:border-amber-500">
+                <p class="text-slate-500">
+                    Ako nemate ključ, aplikacija koristi ugrađenu simulaciju odgovora. Ključ dobijate besplatno na 
+                    <a href="https://aistudio.google.com" target="_blank" class="text-amber-400 underline">Google AI Studio</a>.
+                </p>
+            </div>
+
+            <button onclick="saveApiKey()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl transition text-xs">
+                Sačuvaj Podešavanja
+            </button>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIKA -->
+    <script>
+        let apiKey = localStorage.getItem('gemini_api_key') || '';
+        let currentTab = 'waiter';
+
+        // Učitaj zapamćeni API ključ u input
+        document.getElementById('api-key-input').value = apiKey;
+
+        function switchTab(tab) {
+            currentTab = tab;
+            const waiterTabBtn = document.getElementById('tab-waiter');
+            const managerTabBtn = document.getElementById('tab-manager');
+            const waiterSub = document.getElementById('role-subtitle');
+            
+            if (tab === 'waiter') {
+                document.getElementById('view-waiter').classList.remove('hidden');
+                document.getElementById('view-manager').classList.add('hidden');
+                
+                waiterTabBtn.className = "flex-1 py-2 rounded-lg bg-amber-500 text-slate-950 transition-all flex items-center justify-center space-x-1";
+                managerTabBtn.className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-slate-200 transition-all flex items-center justify-center space-x-1";
+                waiterSub.innerText = "AI Konobar na usluzi";
+            } else {
+                document.getElementById('view-waiter').classList.add('hidden');
+                document.getElementById('view-manager').classList.remove('hidden');
+                
+                managerTabBtn.className = "flex-1 py-2 rounded-lg bg-amber-500 text-slate-950 transition-all flex items-center justify-center space-x-1";
+                waiterTabBtn.className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-slate-200 transition-all flex items-center justify-center space-x-1";
+                waiterSub.innerText = "Asistent Poslovođe";
+            }
+        }
+
+        function openSettings() {
+            document.getElementById('settings-modal').classList.remove('hidden');
+        }
+
+        function closeSettings() {
+            document.getElementById('settings-modal').classList.add('hidden');
+        }
+
+        function saveApiKey() {
+            apiKey = document.getElementById('api-key-input').value.trim();
+            localStorage.setItem('gemini_api_key', apiKey);
+            closeSettings();
+            alert('Podešavanja su sačuvana!');
+        }
+
+        function sendQuickPrompt(promptText) {
+            document.getElementById('user-input').value = promptText;
+            handleUserMessage(new Event('submit'));
+        }
+
+        async function handleUserMessage(event) {
+            event.preventDefault();
+            const input = document.getElementById('user-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            // Dodaj poruku korisnika u chat
+            appendMessage('user', text);
+            input.value = '';
+
+            // Dodaj indikator učitavanja
+            const loadingId = appendLoading();
+
+            // Generiši AI odgovor
+            const response = await getAIResponse(text, 'waiter');
+            
+            removeLoading(loadingId);
+            appendMessage('ai', response);
+        }
+
+        async function askManagerAI(promptText) {
+            const outputBox = document.getElementById('manager-output-box');
+            const outputText = document.getElementById('manager-output-text');
+            
+            outputBox.classList.remove('hidden');
+            outputText.innerText = "AI Poslovođa razmišlja i priprema odgovor...";
+
+            const response = await getAIResponse(promptText, 'manager');
+            outputText.innerText = response;
+        }
+
+        async function getAIResponse(userPrompt, role) {
+            // Ako je unet Gemini API Key, pozivamo pravi Google Gemini API
+            if (apiKey) {
+                try {
+                    const systemContext = role === 'waiter' 
+                        ? "Ti si ljubazan, profesionalan AI konobar u restoranu 'Gusto'. Daj kratke, primamljive i tačne odgovore. Jelovnik uključuje: Teleća čorba, Teleći ćevapi, Biftek u sosu od tartufa, Posna pasta, Panna Cotta, Domaća limunada, Vrhunska vina."
+                        : "Ti si iskusni AI Poslovođa restorana. Daješ konkretne, poslovne i efikasne savete menadžmentu restorana za marketing, rešavanje žalbi i optimizaciju profita.";
+
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{ text: `${systemContext}\nPitanje/Zahtev: ${userPrompt}` }]
+                            }]
+                        })
+                    });
+                    
+                    const data = await res.json();
+                    if (data.candidates && data.candidates[0].content.parts[0].text) {
+                        return data.candidates[0].content.parts[0].text;
+                    }
+                } catch (e) {
+                    console.error("API greška:", e);
+                }
+            }
+
+            // SIMULACIJA (Fallback ako nema API ključa)
+            await new Promise(r => setTimeout(r, 1000)); // Simuliše mrežno kašnjenje
+            
+            const p = userPrompt.toLowerCase();
+            if (role === 'waiter') {
+                if (p.includes('specijalitet') || p.includes('preporuk')) {
+                    return "Danas posebno preporučujemo naš **Biftek u sosu od tartufa** uz čašu crvenog vina Vranac, ili domaće teleće ćevape sa toplim somunom! 🥩🍷";
+                } else if (p.includes('posno') || p.includes('vegansk')) {
+                    return "Za posne i veganske opcije imamo fantastičnu **Posnu pastu sa sušenim paradajzom i bosiljkom**, kao i sveže salate. 🌿";
+                } else if (p.includes('desert') || p.includes('slatko')) {
+                    return "Naš zaštitni znak je kremasta **Panna Cotta sa prelivom od šumskog voća**! Ako volite čokoladu, imamo i topli čokoladni sufle. 🍰";
+                } else if (p.includes('pozovi') || p.includes('sto')) {
+                    return "Obavestio sam kolegu konobara! Stiže do Vašeg stola za minut. 🔔";
+                } else {
+                    return `Razumeo sam! Vaš zahtev "${userPrompt}" je zabeležen. Mogu li Vam ponuditi još neko piće ili osveženje dok čekate? 😊`;
+                }
+            } else {
+                return `[Simulirani izveštaj Poslovođe]\nZa zahtev: "${userPrompt}"\n\nPredlog akcije:\n1. Odmah primeniti standardnu proceduru i zabeležiti u dnevnik smene.\n2. Kontaktirati osoblje u kuhinji radi kontrole kvaliteta.\n3. Zapratiti reakcije gostiju u narednih 24h.`;
+            }
+        }
+
+        function appendMessage(sender, text) {
+            const chat = document.getElementById('waiter-chat');
+            const msgDiv = document.createElement('div');
+            
+            if (sender === 'user') {
+                msgDiv.className = 'flex justify-end';
+                msgDiv.innerHTML = `
+                    <div class="bg-amber-500 text-slate-950 font-medium rounded-2xl p-3 max-w-[85%] text-sm">
+                        ${escapeHtml(text)}
+                    </div>
+                `;
+            } else {
+                msgDiv.className = 'flex items-start space-x-2';
+                msgDiv.innerHTML = `
+                    <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs mt-1 border border-amber-500/30">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 max-w-[85%] text-slate-200">
+                        ${formatMarkdown(text)}
+                    </div>
+                `;
+            }
+
+            chat.appendChild(msgDiv);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function appendLoading() {
+            const chat = document.getElementById('waiter-chat');
+            const id = 'loading-' + Date.now();
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = id;
+            loadingDiv.className = 'flex items-start space-x-2';
+            loadingDiv.innerHTML = `
+                <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs mt-1 border border-amber-500/30">
+                    <i class="fa-solid fa-spinner animate-spin"></i>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 text-slate-400 text-xs italic">
+                    Konobar piše odgovor...
+                </div>
+            `;
+            chat.appendChild(loadingDiv);
+            chat.scrollTop = chat.scrollHeight;
+            return id;
+        }
+
+        function removeLoading(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        function formatMarkdown(text) {
+            return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        }
+    </script>
+</body>
+</html>
