@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Restoran "Gusto" - AI Konobar</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: #0d1117; color: #f0f6fc; display: flex; flex-direction: column; height: 100vh; }
+    
+    header { background: #161b22; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #30363d; }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-icon { background: #ff9800; color: #fff; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .brand-title { font-size: 18px; font-weight: bold; }
+    .brand-subtitle { font-size: 12px; color: #8b949e; }
+    .settings-btn { background: transparent; border: none; color: #8b949e; font-size: 20px; cursor: pointer; }
+
+    .chat-container { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+    
+    .message { max-width: 85%; padding: 12px 16px; border-radius: 16px; font-size: 15px; line-height: 1.4; }
+    .message.user { align-self: flex-end; background: #ff9800; color: #000; font-weight: 500; border-bottom-right-radius: 4px; }
+    .message.bot { align-self: flex-start; background: #161b22; border: 1px solid #30363d; color: #e6edf3; border-bottom-left-radius: 4px; }
+    
+    .input-area { padding: 15px; background: #161b22; border-top: 1px solid #30363d; display: flex; gap: 10px; }
+    .input-area input { flex: 1; background: #0d1117; border: 1px solid #30363d; border-radius: 12px; padding: 12px 15px; color: #fff; font-size: 15px; outline: none; }
+    .input-area button { background: #ff9800; border: none; border-radius: 12px; width: 50px; color: #000; font-size: 18px; cursor: pointer; }
+
+    /* Modal za podešavanja */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; padding: 20px; }
+    .modal.active { display: flex; }
+    .modal-content { background: #161b22; border: 1px solid #30363d; border-radius: 16px; width: 100%; max-width: 400px; padding: 20px; position: relative; }
+    .modal-close { position: absolute; top: 15px; right: 15px; color: #8b949e; font-size: 20px; border: none; background: transparent; cursor: pointer; }
+    .modal-title { margin-bottom: 15px; font-size: 18px; }
+    .modal-input { width: 100%; background: #0d1117; border: 1px solid #30363d; padding: 12px; border-radius: 8px; color: #fff; margin: 10px 0 20px 0; }
+    .save-btn { width: 100%; background: #ff9800; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; color: #000; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-icon"><i class="fa-solid fa-utensils"></i></div>
+      <div>
+        <div class="brand-title">Restoran "Gusto"</div>
+        <div class="brand-subtitle">AI Konobar na usluzi</div>
+      </div>
+    </div>
+    <button class="settings-btn" onclick="openSettings()"><i class="fa-solid fa-gear"></i></button>
+  </header>
+
+  <div class="chat-container" id="chat">
+    <div class="message bot">Dobar dan! Ja sam Vaš digitalni konobar. Slobodno me pitajte za preporuku jela, sastojke, vina ili ako želite nešto da naručite! 🍽️</div>
+  </div>
+
+  <div class="input-area">
+    <input type="text" id="userInput" placeholder="Pitajte konobara ili naručite..." onkeypress="handleKeyPress(event)">
+    <button onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+  </div>
+
+  <div class="modal" id="settingsModal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeSettings()">&times;</button>
+      <div class="modal-title">Podešavanja AI Ključa</div>
+      <label style="font-size:13px; color:#8b949e;">Google Gemini API Key:</label>
+      <input type="password" id="apiKeyInput" class="modal-input" placeholder="AIzaSy...">
+      <button class="save-btn" onclick="saveKey()">Sačuvaj Podešavanja</button>
+    </div>
+  </div>
+
+  <script>
+    let apiKey = localStorage.getItem('gemini_key') || '';
+
+    function openSettings() {
+      document.getElementById('apiKeyInput').value = apiKey;
+      document.getElementById('settingsModal').classList.add('active');
+    }
+
+    function closeSettings() {
+      document.getElementById('settingsModal').classList.remove('active');
+    }
+
+    function saveKey() {
+      apiKey = document.getElementById('apiKeyInput').value.trim();
+      localStorage.setItem('gemini_key', apiKey);
+      alert('Ključ je uspešno sačuvan!');
+      closeSettings();
+    }
+
+    function handleKeyPress(e) {
+      if (e.key === 'Enter') sendMessage();
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('userInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      appendMsg(text, 'user');
+      input.value = '';
+
+      if (!apiKey) {
+        appendMsg("Molimo vas da kliknete na zupčanik gore desno i unesete vaš Gemini API ključ.", 'bot');
+        return;
+      }
+
+      const loadingDiv = appendMsg("Konobar razmišlja...", 'bot');
+
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: "Ti si ljubazan AI konobar u restoranu 'Gusto'. Daj preporuke, odgovaraj na pitanja i potvrdjuj porudžbine na srpskom jeziku.\nGost: " + text }]
+            }]
+          })
+        });
+
+        const data = await response.json();
+        loadingDiv.remove();
+
+        if (data.candidates && data.candidates[0].content.parts[0].text) {
+          appendMsg(data.candidates[0].content.parts[0].text, 'bot');
+        } else {
+          appendMsg("Proverite da li je vaš API ključ ispravan.", 'bot');
+        }
+      } catch (err) {
+        loadingDiv.remove();
+        appendMsg("Došlo je do greške u vezi sa AI servisom.", 'bot');
+      }
+    }
+
+    function appendMsg(text, type) {
+      const chat = document.getElementById('chat');
+      const msg = document.createElement('div');
+      msg.className = `message ${type}`;
+      msg.innerText = text;
+      chat.appendChild(msg);
+      chat.scrollTop = chat.scrollHeight;
+      return msg;
+    }
+  </script>
+</body>
+</html>
