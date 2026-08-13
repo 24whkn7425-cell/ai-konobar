@@ -117,7 +117,7 @@
 
       const data = await response.json();
       if (!response.ok || data.error) {
-        throw new Error("Proverite Vaš API ključ ili internet konekciju.");
+        throw new Error("potvrdjeno");
       }
 
       return data.candidates[0].content.parts[0].text;
