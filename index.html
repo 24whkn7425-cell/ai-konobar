@@ -71,30 +71,33 @@
       }
     };
 
-    // Zvanični Interactions API poziv koji ne zavisi od starih naziva modela
-    async function callInteractionsAPI(userMessage, apiKey) {
+    // Zvanični API poziv ka Gemini
+    async function callInteractionsAPI(userMessage) {
+      const apiKey = localStorage.getItem('gemini_api_key');
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-
 
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-        system_instruction: {
-          parts: [{ text: SYSTEM_INSTRUCTION }]
-        },
-        contents: [{
-          parts: [{ text: userMessage }]
-        }]
-      })
-
+          system_instruction: {
+            parts: [{ text: SYSTEM_INSTRUCTION }]
+          },
+          contents: [{
+            parts: [{ text: userMessage }]
+          }]
+        })
+      });
 
       const data = await response.json();
 
       if (!response.ok || data.error) {
-        // Fallback na klasičan generateContent ako Interactions API vrati grešku
-        return await callFallbackAPI(userMessage, apiKey);
+        throw new Error(data.error?.message || "Greška pri pozivanju API-ja");
       }
+
+      // Vraća tekst odgovora konobara
+      return data.candidates[0].content.parts[0].text;
+    }
 
       if (data.output) {
         return data.output;
