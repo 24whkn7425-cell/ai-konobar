@@ -56,7 +56,8 @@
         return;
       }
 
-      chat.innerHTML += `<div class="msg user">${text}</div>`;
+      chat.innerHTML += `<div class="msg bot">Greška: ${err.message}</div>`;
+
       input.value = '';
       chat.scrollTop = chat.scrollHeight;
 
