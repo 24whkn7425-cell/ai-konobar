@@ -80,11 +80,14 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'gemini-1.5-flash',
-          system_instruction: SYSTEM_INSTRUCTION,
-          input: userMessage
-        })
-      });
+        system_instruction: {
+          parts: [{ text: SYSTEM_INSTRUCTION }]
+        },
+        contents: [{
+          parts: [{ text: userMessage }]
+        }]
+      })
+
 
       const data = await response.json();
 
