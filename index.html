@@ -1,145 +1,70 @@
-<!DOCTYPE html>
-<html lang="sr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Restoran "Gusto" - AI Konobar</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: #0d1117; color: #c9d1d9; display: flex; flex-direction: column; height: 100vh; }
-    header { background: #161b22; padding: 15px; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; }
-    .brand { display: flex; align-items: center; gap: 10px; }
-    .brand-icon { background: #ff9800; color: #fff; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-    .brand-title { font-size: 16px; font-weight: bold; color: #f0f6fc; }
-    .brand-sub { font-size: 12px; color: #8b949e; }
-    .gear-btn { background: transparent; border: none; font-size: 20px; cursor: pointer; color: #8b949e; }
-    .chat-container { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
-    .msg { max-width: 80%; padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.4; word-wrap: break-word; }
-    .bot { background: #21262d; color: #c9d1d9; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #30363d; }
-    .user { background: #ff9800; color: #000; font-weight: 500; align-self: flex-end; border-bottom-right-radius: 4px; }
-    .input-area { background: #161b22; padding: 12px; border-top: 1px solid #30363d; display: flex; gap: 8px; }
-    input[type="text"] { flex: 1; background: #0d1117; border: 1px solid #30363d; border-radius: 20px; padding: 10px 16px; color: #fff; font-size: 14px; outline: none; }
-    button.send-btn { background: #ff9800; border: none; border-radius: 20px; padding: 0 16px; color: #000; font-weight: bold; cursor: pointer; }
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; padding: 20px; }
-    .modal-content { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 20px; width: 100%; max-width: 400px; }
-    .modal-content h3 { margin-bottom: 12px; color: #f0f6fc; }
-    .modal-content input { width: 100%; margin-bottom: 12px; background: #0d1117; border: 1px solid #30363d; padding: 10px; border-radius: 6px; color: #fff; }
-    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
-    .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; }
-    .btn-save { background: #2ea44f; color: #fff; }
-    .btn-cancel { background: #30363d; color: #c9d1d9; }
-  </style>
-</head>
-<body>
+// Lista modela po prioritetu. Ako jedan izbaci grešku, automat prolazi na sledeći!
+const GEMINI_MODELS = [
+  'gemini-1.5-flash',
+  'gemini-1.5-pro',
+  'gemini-2.0-flash'
+];
 
-  <header>
-    <div class="brand">
-      <div class="brand-icon">🍴</div>
-      <div>
-        <div class="brand-title">Restoran "Gusto"</div>
-        <div class="brand-sub">AI Konobar na usluzi</div>
-      </div>
-    </div>
-    <button class="gear-btn" onclick="openModal()">⚙️</button>
-  </header>
+async function sendToGemini(userMessage, apiKey) {
+  let lastErrorMessage = '';
 
-  <div class="chat-container" id="chat">
-    <div class="msg bot">Dobar dan! Ja sam Vaš digitalni konobar. Slobodno me pitajte za preporuku jela, sastojke, vina ili ako želite nešto da naručite! 🍽️</div>
-  </div>
+  for (const model of GEMINI_MODELS) {
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-  <div class="input-area">
-    <input type="text" id="userInput" placeholder="Pitajte konobara ili naručite..." onkeypress="handleKey(event)">
-    <button class="send-btn" onclick="sendMessage()">➤</button>
-  </div>
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [{ text: userMessage }]
+            }
+          ]
+        })
+      });
 
-  <div class="modal" id="settingsModal">
-    <div class="modal-content">
-      <h3>Podešavanja</h3>
-      <input type="text" id="apiKeyInput" placeholder="Nalepite Gemini API ključ ovde...">
-      <div class="modal-actions">
-        <button class="btn btn-cancel" onclick="closeModal()">Otkaži</button>
-        <button class="btn btn-save" onclick="saveKey()">Sačuvaj</button>
-      </div>
-    </div>
-  </div>
+      const data = await response.json();
 
-  <script>
-    const SYSTEM_PROMPT = "Ti si ljubazan i profesionalan konobar u restoranu Gusto. Nudiš jela sa menija (paste, pice, glavna jela, deserte), daješ preporuke za pića i odgovaraš na pitanja gosta kratko, prijatno i efikasno na srpskom jeziku.";
-
-    function openModal() {
-      document.getElementById('apiKeyInput').value = localStorage.getItem('gemini_api_key') || '';
-      document.getElementById('settingsModal').style.display = 'flex';
-    }
-
-    function closeModal() {
-      document.getElementById('settingsModal').style.display = 'none';
-    }
-
-    function saveKey() {
-      const key = document.getElementById('apiKeyInput').value.trim();
-      localStorage.setItem('gemini_api_key', key);
-      closeModal();
-      addMessage("API ključ je sačuvan! Možete postaviti pitanje.", "bot");
-    }
-
-    function addMessage(text, sender) {
-      const chat = document.getElementById('chat');
-      const msg = document.createElement('div');
-      msg.className = `msg ${sender}`;
-      msg.textContent = text;
-      chat.appendChild(msg);
-      chat.scrollTop = chat.scrollHeight;
-    }
-
-    function handleKey(e) {
-      if (e.key === 'Enter') sendMessage();
-    }
-
-    async function sendMessage() {
-      const input = document.getElementById('userInput');
-      const text = input.value.trim();
-      if (!text) return;
-
-      const apiKey = localStorage.getItem('gemini_api_key');
-      if (!apiKey) {
-        addMessage(text, 'user');
-        input.value = '';
-        addMessage("Molimo vas da kliknete na zupčanik gore desno i unesete vaš Gemini API ključ.", "bot");
-        return;
+      // Ako je Google vratio grešku za trenutni model, nastavi na sledeći u listi
+      if (!response.ok || data.error) {
+        lastErrorMessage = data.error?.message || `Greška status: ${response.status}`;
+        console.warn(`Model ${model} nije dostupan, pokušavam sledeći...`);
+        continue;
       }
 
-      addMessage(text, 'user');
-      input.value = '';
+      // Ako je odgovor uspešan, vrati tekst
+      if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+        return data.candidates[0].content.parts[0].text;
+      }
+    } catch (err) {
+      console.error(`Mrežna greška sa modelom ${model}:`, err);
+      lastErrorMessage = err.message;
+    }
+  }
 
+  // Ako nijedan model iz liste nije uspeo
+  throw new Error(`Greška od Google-a: ${lastErrorMessage}`);
+}async function handleUserSend() {
+  const userInput = document.getElementById('input-box').value; // Prilagodi ID tvom inputu
+  const apiKey = localStorage.getItem('api_key'); // Ili tvoja promenljiva za API ključ
+
+  if (!userInput.trim()) return;
+
+  // Prikaži poruku korisnika u chatu...
+  appendUserMessage(userInput);
+
+  try {
+    // Pozivamo pametnu funkciju sa fallback-om
+    const reply = await sendToGemini(userInput, apiKey);
     
-      const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=' + apiKey;
+    // Prikazujemo odgovor bot-a
+    appendBotMessage(reply);
+  } catch (error) {
+    // Prikazujemo grešku samo ako baš nijedan model nije prošao
+    appendBotMessage(error.message);
+  }
+}
 
-generateContent?key=' + apiKey;
-
-      try {
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              { role: 'user', parts: [{ text: SYSTEM_PROMPT + "\n\nGost: " + text }] }
-            ]
-          })
-        });
-
-        const data = await response.json();
-
-        if (data.error) {
-          addMessage("Greška od Google-a: " + data.error.message, 'bot');
-        } else if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
-          addMessage(data.candidates[0].content.parts[0].text, 'bot');
-        } else {
-          addMessage("Izvinite, došlo je do neočekivanog odgovora.", 'bot');
-        }
-      } catch (err) {
-        addMessage("Greška pri slanju poruke. Proverite internet konekciju ili API ključ.", 'bot');
-      }
-    }
-  </script>
-</body>
-</html>
