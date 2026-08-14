@@ -13,9 +13,16 @@
     .bot { background: #2a3447; align-self: flex-start; }
     .user { background: #f59e0b; color: #000; align-self: flex-end; font-weight: 500; }
     .typing { font-style: italic; opacity: 0.7; }
-    .input-box { display: flex; gap: 10px; margin-top: 15px; }
+    
+    /* Brzi dugmići */
+    .quick-replies { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0 5px 0; scrollbar-width: none; }
+    .quick-replies::-webkit-scrollbar { display: none; }
+    .quick-btn { background: #2a3447; color: #f59e0b; border: 1px solid #f59e0b; padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; whitespace: nowrap; flex-shrink: 0; transition: all 0.2s ease; }
+    .quick-btn:active { background: #f59e0b; color: #000; }
+
+    .input-box { display: flex; gap: 10px; margin-top: 5px; }
     input { flex: 1; padding: 12px; border-radius: 8px; border: none; background: #2a3447; color: #fff; outline: none; font-size: 16px; }
-    button { padding: 12px 20px; border-radius: 8px; border: none; background: #f59e0b; color: #000; font-weight: bold; cursor: pointer; font-size: 18px; }
+    button.send-btn { padding: 12px 20px; border-radius: 8px; border: none; background: #f59e0b; color: #000; font-weight: bold; cursor: pointer; font-size: 18px; }
 
     /* Modal za pregled rezervacija */
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; z-index: 100; }
@@ -39,9 +46,17 @@
     <div class="msg bot">Dobar dan! Ja sam Vaš digitalni konobar. Izvolite, šta Vas zanima iz naše ponude? 🍽️</div>
   </div>
 
+  <!-- Brzi odgovori -->
+  <div class="quick-replies">
+    <button class="quick-btn" onclick="sendQuickReply('Prikaži mi jelovnik')">🍽️ Jelovnik</button>
+    <button class="quick-btn" onclick="sendQuickReply('Želim da rezervisem sto')">📅 Rezervacija</button>
+    <button class="quick-btn" onclick="sendQuickReply('Koje je vaše radno vreme?')">🕒 Radno vreme</button>
+    <button class="quick-btn" onclick="sendQuickReply('Gde se nalazite?')">📍 Lokacija</button>
+  </div>
+
   <div class="input-box">
     <input type="text" id="userInput" placeholder="Pitajte konobara..." onkeypress="if(event.key==='Enter') sendMsg()">
-    <button type="button" onclick="sendMsg()">></button>
+    <button class="send-btn" type="button" onclick="sendMsg()">></button>
   </div>
 
   <!-- Modal panel za rezervacije -->
@@ -135,7 +150,7 @@ PRAVILA PONAŠANJA:
         return;
       }
 
-      listEl.innerHTML = reservations.map((r, i) => `
+      listEl.innerHTML = reservations.map((r) => `
         <div class="res-card">
           <strong>👤 ${r.ime || 'N/A'}</strong><br>
           📅 Datum: ${r.datum || 'N/A'}<br>
@@ -151,6 +166,12 @@ PRAVILA PONAŠANJA:
         localStorage.removeItem('gusto_reservations');
         renderReservations();
       }
+    }
+
+    function sendQuickReply(text) {
+      const input = document.getElementById('userInput');
+      input.value = text;
+      sendMsg();
     }
 
     async function sendMsg() {
@@ -212,7 +233,6 @@ PRAVILA PONAŠANJA:
             try {
               const resData = JSON.parse(resMatch[1]);
               saveReservation(resData);
-              // Uklanjamo tajni kod iz poruke koju prikazujemo gostu
               reply = reply.replace(/\[\[REZERVACIJA:(.*?)\]\]/, '');
             } catch (e) {
               console.error('Greška pri parsovanju rezervacije:', e);
