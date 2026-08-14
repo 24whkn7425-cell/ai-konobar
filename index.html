@@ -9,11 +9,11 @@
        1. CSS VARIJABLE (TEMA I BOJE - PRILAGODI ZA SVAKI RESTORAN)
        ========================================================= */
     :root {
-      --bg-color: #0f172a;          /* Glavna pozadina (Tamno plava / Dark) */
+      --bg-color: #0f172a;          /* Glavna pozadina */
       --card-bg: #1e293b;        /* Pozadina poruka i kontrola */
-      --user-msg-bg: #334155;    /* Pozadina poruka korisnika */
+      --user-msg-bg: #f59e0b;    /* Pozadina poruka korisnika */
       --bot-msg-bg: #1e293b;     /* Pozadina poruka bot-a */
-      --primary-accent: #f59e0b; /* Glavna akcentna boja (Zlatno/Narandžasta) */
+      --primary-accent: #f59e0b; /* Akcentna boja (Zlatno/Narandžasta) */
       --text-main: #f8fafc;      /* Boja glavnog teksta */
       --text-muted: #94a3b8;     /* Boja sporednog teksta */
       --border-color: #334155;   /* Boja linija i okvira */
@@ -36,7 +36,6 @@
       min-height: 100vh;
     }
 
-    /* Glavni kontejner telefona / aplikacije */
     .app-container {
       width: 100%;
       max-width: 480px;
@@ -49,7 +48,7 @@
       overflow: hidden;
     }
 
-    /* Zaglavlje (Header) */
+    /* Header */
     .header {
       padding: 16px;
       background-color: var(--card-bg);
@@ -72,7 +71,7 @@
       margin-top: 2px;
     }
 
-    /* Sekcija sa porukama (Chat Area) */
+    /* Chat Area */
     .chat-box {
       flex: 1;
       padding: 16px;
@@ -101,14 +100,14 @@
     }
 
     .user-msg {
-      background-color: var(--primary-accent);
+      background-color: var(--user-msg-bg);
       color: #000000;
       font-weight: 500;
       align-self: flex-end;
       border-bottom-right-radius: 4px;
     }
 
-    /* Indikator kucanja (Typing Indicator) */
+    /* Typing Indicator */
     .typing-indicator {
       display: none;
       align-self: flex-start;
@@ -140,7 +139,7 @@
       40% { transform: scale(1); opacity: 1; }
     }
 
-    /* Brza navigaciona dugmad */
+    /* Quick Nav Buttons */
     .quick-nav {
       display: flex;
       gap: 8px;
@@ -169,7 +168,7 @@
       color: #000;
     }
 
-    /* Unos poruke i dugme za slanje */
+    /* Input Area */
     .input-area {
       padding: 12px 16px;
       background-color: var(--card-bg);
@@ -246,7 +245,7 @@
       margin-bottom: 4px;
     }
 
-    .form-group input, .form-group select {
+    .form-group input {
       width: 100%;
       padding: 10px;
       background-color: var(--bg-color);
@@ -287,7 +286,6 @@
 <body>
 
   <div class="app-container">
-    <!-- Header -->
     <div class="header">
       <div>
         <div class="header-title">Restoran "Gusto"</div>
@@ -295,11 +293,9 @@
       </div>
     </div>
 
-    <!-- Chat sekcija -->
     <div class="chat-box" id="chatBox">
       <div class="message bot-msg">Dobar dan! Ja sam vaš Digitalni Konobar restorana "Gusto". Kako vam mogu pomoći danas? 🍽️</div>
       
-      <!-- Typing Indicator -->
       <div class="typing-indicator" id="typingIndicator">
         <div class="dots">
           <div class="dot"></div>
@@ -309,21 +305,19 @@
       </div>
     </div>
 
-    <!-- Quick Navigation -->
     <div class="quick-nav">
       <button class="quick-btn" onclick="sendQuickMessage('Prikaži mi jelovnik')">🍽️ Jelovnik</button>
       <button class="quick-btn" onclick="openReservationModal()">📅 Rezervacija</button>
       <button class="quick-btn" onclick="sendQuickMessage('Koje je radno vreme?')">🕒 Radno vreme</button>
     </div>
 
-    <!-- Unos poruke -->
     <div class="input-area">
       <input type="text" id="userInput" placeholder="Pitajte konobara..." onkeypress="handleKeyPress(event)">
       <button class="send-btn" onclick="sendMessage()">❯</button>
     </div>
   </div>
 
-  <!-- Modal za Rezervacije -->
+  <!-- Modal -->
   <div class="modal" id="resModal">
     <div class="modal-content">
       <div class="modal-title">Brza Rezervacija Stola</div>
@@ -348,9 +342,9 @@
 
   <script>
     /* =========================================================
-       2. KONFIGURACIJA AI MODELA I ZNANJA (SISTEMSKA UPUTSTVA)
+       2. POSTAVI TVOJ GEMINI API KLJUČ OVDE
        ========================================================= */
-    const GEMINI_API_KEY = "TVOJ_GEMINI_API_KEY"; // Ovde unosiš važeći API ključ
+    const GEMINI_API_KEY = "TVOJ_GEMINI_API_KEY"; 
 
     const SYSTEM_INSTRUCTION = `
     Ti si ljubazan i profesionalan AI Digitalni Konobar restorana "Gusto".
@@ -386,9 +380,6 @@
 
     let chatHistory = [];
 
-    /* =========================================================
-       3. LOGIKA ZA SLANJE PORUKA I GEMINI API POZIV
-       ========================================================= */
     async function sendMessage() {
       const inputEl = document.getElementById("userInput");
       const text = inputEl.value.trim();
@@ -397,12 +388,17 @@
       appendMessage(text, "user-msg");
       inputEl.value = "";
 
-      showTyping(true);
+      if (GEMINI_API_KEY === "TVOJ_GEMINI_API_KEY" || !GEMINI_API_KEY) {
+        appendMessage("⚠️ Zaboravio si da uneseš API Ključ u skriptu! Otvori index.html i ubaci ključ u GEMINI_API_KEY promenljivu.", "bot-msg");
+        return;
+      }
 
+      showTyping(true);
       chatHistory.push({ role: "user", parts: [{ text: text }] });
 
       try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_API_KEY}`, {
+        // Korišćenje stabilnog gemini-2.5-flash modela
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -418,12 +414,14 @@
           const reply = data.candidates[0].content.parts[0].text;
           appendMessage(reply, "bot-msg");
           chatHistory.push({ role: "model", parts: [{ text: reply }] });
+        } else if (data.error) {
+          appendMessage(`⚠️ Greška sa API-jem: ${data.error.message}`, "bot-msg");
         } else {
           appendMessage("Izvinite, trenutno ne mogu da obradim zahtev. Pokušajte ponovo.", "bot-msg");
         }
       } catch (err) {
         showTyping(false);
-        appendMessage("Došlo je do greške u povezivanju sa konobarom.", "bot-msg");
+        appendMessage("Došlo je do mrežne greške u povezivanju sa konobarom.", "bot-msg");
       }
     }
 
@@ -454,9 +452,7 @@
       if (e.key === "Enter") sendMessage();
     }
 
-    /* =========================================================
-       4. MODAL I SPREMANJE REZERVACIJA (LOCALSTORAGE)
-       ========================================================= */
+    /* Modal za rezervacije */
     function openReservationModal() {
       document.getElementById("resModal").style.display = "flex";
     }
@@ -476,8 +472,6 @@
       }
 
       const reservation = { name, guests, datetime, createdAt: new Date().toISOString() };
-      
-      // Čuvanje u localstorage
       let bookings = JSON.parse(localStorage.getItem("gusto_bookings") || "[]");
       bookings.push(reservation);
       localStorage.setItem("gusto_bookings", JSON.stringify(bookings));
