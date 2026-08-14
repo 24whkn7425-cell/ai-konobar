@@ -3,124 +3,95 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Digitalni Konobar - Gusto</title>
+  <title>Restoran "Gusto" - AI Konobar</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-    body { background-color: #0f172a; color: #fff; display: flex; flex-direction: column; height: 100vh; }
-    .header { padding: 10px; text-align: center; background-color: #1e293b; font-weight: bold; border-bottom: 1px solid #334155; }
-    
-    /* Traka za ključ */
-    #key-bar { background: #b91c1c; padding: 8px; text-align: center; font-size: 12px; display: flex; gap: 5px; justify-content: center; }
-    #key-bar input { padding: 4px; border-radius: 4px; border: none; width: 60%; }
-    #key-bar button { padding: 4px 8px; background: #fff; color: #000; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
-
-    #chat-box { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-    .message { padding: 12px 16px; border-radius: 16px; max-width: 85%; font-size: 15px; line-height: 1.4; word-break: break-word; }
-    .user-message { background-color: #ffab00; color: #000 !important; align-self: flex-end; }
-    .bot-message { background-color: #1e293b; color: #fff !important; align-self: flex-start; border: 1px solid #334155; }
-    
-    .input-container { display: flex; padding: 12px 15px; background-color: #1e293b; gap: 10px; }
-    #user-input { flex: 1; background-color: #0f172a; border: 1px solid #334155; color: #fff !important; padding: 12px 16px; border-radius: 25px; font-size: 15px; }
-    #send-btn { background-color: #ffab00; color: #000; border: none; width: 45px; height: 45px; border-radius: 50%; font-weight: bold; font-size: 20px; cursor: pointer; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121824; color: #fff; margin: 0; padding: 20px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .chat-box { flex: 1; overflow-y: auto; background: #1a2232; border-radius: 12px; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+    .msg { padding: 10px 14px; border-radius: 10px; max-width: 80%; line-height: 1.4; word-break: break-word; }
+    .bot { background: #2a3447; align-self: flex-start; }
+    .user { background: #f59e0b; color: #000; align-self: flex-end; font-weight: 500; }
+    .input-box { display: flex; gap: 10px; margin-top: 15px; }
+    input { flex: 1; padding: 12px; border-radius: 8px; border: none; background: #2a3447; color: #fff; outline: none; font-size: 16px; }
+    button { padding: 12px 20px; border-radius: 8px; border: none; background: #f59e0b; color: #000; font-weight: bold; cursor: pointer; font-size: 18px; }
   </style>
 </head>
 <body>
 
-  <div class="header">🍽️ Digitalni Konobar - Restoran Gusto</div>
-
-  <!-- Polje na vrhu da odmah vidiš koji se ključ koristi -->
-  <div id="key-bar">
-    <input type="password" id="api-key-input" placeholder="Nalepi Gemini API Ključ ovde...">
-    <button onclick="sacuvajKluc()">Sačuvaj Ključ</button>
+  <div class="header">
+    <h2>Restoran "Gusto"</h2>
+    <button onclick="setApiKey()" style="background:none; color:#fff;">⚙️</button>
   </div>
 
-  <div id="chat-box">
-    <div class="message bot-message">
-      Dobar dan! Ja sam vaša podrška. Ukucajte pitanje i kliknite na žutu strelicu! 🍽️
-    </div>
+  <div class="chat-box" id="chat">
+    <div class="msg bot">Dobar dan! Ja sam Vaš digitalni konobar. Izvolite, šta Vas zanima iz naše ponude? 🍽️</div>
   </div>
 
-  <div class="input-container">
-    <input type="text" id="user-input" placeholder="Pitajte konobara..." autocomplete="off">
-    <button id="send-btn" type="button" onclick="posaljiPoruku()">❯</button>
+  <div class="input-box">
+    <input type="text" id="userInput" placeholder="Pitajte konobara..." onkeypress="if(event.key==='Enter') sendMsg()">
+    <button type="button" onclick="sendMsg()">></button>
   </div>
 
   <script>
-    // Učitaj ključ ako postoji
-    document.getElementById('api-key-input').value = localStorage.getItem('moj_gemini_key') || '';
+    const SYSTEM_INSTRUCTION = "Ti si ljubazan AI konobar restorana Gusto. Odgovaraj kratko, fino i profesionalno.";
 
-    function sacuvajKluc() {
-      const val = document.getElementById('api-key-input').value.trim();
-      localStorage.setItem('moj_gemini_key', val);
-      alert('Ključ sačuvan!');
+    function setApiKey() {
+      const currentKey = localStorage.getItem('gemini_api_key') || '';
+      const key = prompt("Unesite Vaš Gemini API ključ:", currentKey);
+      if (key !== null) {
+        localStorage.setItem('gemini_api_key', key.trim());
+        alert("API ključ je sačuvan!");
+      }
     }
 
-    async function posaljiPoruku() {
-      const key = localStorage.getItem('moj_gemini_key') || document.getElementById('api-key-input').value.trim();
-      
-      if (!key) {
-        alert('PRVO UNESITE API KLJUČ U CRVENU TRAKU NA VRHU!');
+    async function sendMsg() {
+      const input = document.getElementById('userInput');
+      const chat = document.getElementById('chat');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const apiKey = localStorage.getItem('gemini_api_key');
+      if (!apiKey) {
+        alert("Kliknite na zupčanik ⚙️ i unesite API ključ!");
         return;
       }
 
-      const input = document.getElementById('user-input');
-      const tekst = input.value.trim();
-      if (!tekst) return;
-
+      chat.innerHTML += `<div class="msg user">${text}</div>`;
       input.value = '';
-      prikazi('user', tekst);
-      const tempId = prikazi('bot', '<i>Konobar razmišlja...</i>');
+      chat.scrollTop = chat.scrollHeight;
 
       try {
-        // Zovemo isključivo stabilni 1.5-flash
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
-
-        const res = await fetch(url, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: "Ti si konobar restorana Gusto. Odgovori kratko: " + tekst }] }]
+            contents: [{
+              role: 'user',
+              parts: [{ text: `Uputstvo: ${SYSTEM_INSTRUCTION}\nPitanje gosta: ${text}` }]
+            }]
           })
         });
 
-        const data = await res.json();
+        const data = await response.json();
 
-        if (data.error) {
-          azuriraj(tempId, '❌ API GREŠKA: ' + data.error.message);
-        } else if (data.candidates && data.candidates[0].content.parts[0].text) {
-          azuriraj(tempId, data.candidates[0].content.parts[0].text);
+        if (!response.ok) {
+          const errDetail = data.error ? data.error.message : 'Greška pri odgovoru';
+          throw new Error(`[Kod ${response.status}] ${errDetail}`);
+        }
+
+        if (data.candidates && data.candidates[0].content.parts[0].text) {
+          const reply = data.candidates[0].content.parts[0].text;
+          chat.innerHTML += `<div class="msg bot">${reply}</div>`;
         } else {
-          azuriraj(tempId, '❌ Nepoznat odgovor od servera.');
+          chat.innerHTML += `<div class="msg bot">Prazan odgovor od servera.</div>`;
         }
 
       } catch (err) {
-        azuriraj(tempId, '❌ MREŽNA GREŠKA: ' + err.message);
+        chat.innerHTML += `<div class="msg bot" style="color:#ff6b6b;">${err.message}</div>`;
       }
-    }
 
-    function prikazi(ko, tekst) {
-      const chat = document.getElementById('chat-box');
-      const div = document.createElement('div');
-      const id = 'msg-' + Date.now();
-      div.id = id;
-      div.className = `message ${ko}-message`;
-      div.innerHTML = tekst;
-      chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
-      return id;
     }
-
-    function azuriraj(id, tekst) {
-      const el = document.getElementById(id);
-      if (el) {
-        el.innerHTML = tekst;
-        document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
-      }
-    }
-
-    document.getElementById('user-input').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); posaljiPoruku(); }
-    });
   </script>
 </body>
 </html>
