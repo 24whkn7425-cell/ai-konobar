@@ -5,15 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Digitalni Konobar</title>
   <style>
+    /* =========================================================
+       1. CSS VARIJABLE (TEMA I BOJE - PRILAGODI ZA SVAKI RESTORAN)
+       ========================================================= */
     :root {
-      --bg-color: #0f172a;
-      --card-bg: #1e293b;
-      --user-msg-bg: #f59e0b;
-      --bot-msg-bg: #1e293b;
-      --primary-accent: #f59e0b;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --border-color: #334155;
+      --bg-color: #0f172a;          /* Glavna pozadina */
+      --card-bg: #1e293b;        /* Pozadina poruka i kontrola */
+      --user-msg-bg: #f59e0b;    /* Pozadina poruka korisnika */
+      --bot-msg-bg: #1e293b;     /* Pozadina poruka bot-a */
+      --primary-accent: #f59e0b; /* Akcentna boja (Zlatno/Narandžasta) */
+      --text-main: #f8fafc;      /* Boja glavnog teksta */
+      --text-muted: #94a3b8;     /* Boja sporednog teksta */
+      --border-color: #334155;   /* Boja linija i okvira */
       --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
@@ -22,7 +25,7 @@
     
     .app-container { width: 100%; max-width: 480px; height: 100vh; display: flex; flex-direction: column; background-color: var(--bg-color); position: relative; overflow: hidden; }
     
-    .header { padding: 16px; background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+    .header { padding: 16px; background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
     .header-title { font-size: 1.2rem; font-weight: 700; color: var(--text-main); }
     .header-subtitle { font-size: 0.8rem; color: var(--primary-accent); margin-top: 2px; }
     
@@ -39,19 +42,23 @@
 
     .quick-nav { display: flex; gap: 8px; padding: 10px 16px; overflow-x: auto; background-color: var(--bg-color); border-top: 1px solid var(--border-color); }
     .quick-btn { background-color: var(--card-bg); color: var(--primary-accent); border: 1px solid var(--primary-accent); padding: 8px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; white-space: nowrap; cursor: pointer; }
-    
+    .quick-btn:active { transform: scale(0.95); background-color: var(--primary-accent); color: #000; }
+
     .input-area { padding: 12px 16px; background-color: var(--card-bg); display: flex; gap: 10px; border-top: 1px solid var(--border-color); }
     .input-area input { flex: 1; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 24px; padding: 12px 18px; color: var(--text-main); font-size: 0.95rem; outline: none; }
-    .send-btn { background-color: var(--primary-accent); color: #000; border: none; width: 44px; height: 44px; border-radius: 50%; font-weight: bold; font-size: 1.2rem; cursor: pointer; }
+    .input-area input:focus { border-color: var(--primary-accent); }
+    .send-btn { background-color: var(--primary-accent); color: #000; border: none; width: 44px; height: 44px; border-radius: 50%; font-weight: bold; font-size: 1.2rem; cursor: pointer; display: flex; justify-content: center; align-items: center; }
 
-    /* Modal za ključ i rezervaciju */
+    /* Modali */
     .modal { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.85); z-index: 100; justify-content: center; align-items: center; padding: 20px; }
     .modal-content { background-color: var(--card-bg); width: 100%; max-width: 360px; padding: 20px; border-radius: 16px; border: 1px solid var(--border-color); }
     .modal-title { font-size: 1.1rem; margin-bottom: 12px; color: var(--primary-accent); }
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; }
     .form-group input { width: 100%; padding: 10px; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-main); outline: none; }
-    .btn-submit { width: 100%; background-color: var(--primary-accent); color: #000; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 15px; }
+    .btn-submit { flex: 1; background-color: var(--primary-accent); color: #000; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    .btn-cancel { flex: 1; background-color: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -88,23 +95,29 @@
   <div class="modal" id="keyModal">
     <div class="modal-content">
       <div class="modal-title">Podešavanje API Ključa</div>
-      <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">Unesite ključ jednom. Biće sačuvan samo na vašem uređaju.</p>
+      <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">Unesite vaš Gemini API ključ. Biće bezbedno sačuvan samo na vašem uređaju.</p>
       <div class="form-group">
         <label>Gemini API Key</label>
         <input type="password" id="apiKeyInput" placeholder="AIzaSy...">
       </div>
-      <button class="btn-submit" onclick="saveApiKey()">Sačuvaj Ključ</button>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeKeyModal()">Zatvori</button>
+        <button class="btn-submit" onclick="saveApiKey()">Sačuvaj Ključ</button>
+      </div>
     </div>
   </div>
 
-  <!-- Modal za Rezervaciju -->
+  <!-- Modal za Rezervacije -->
   <div class="modal" id="resModal">
     <div class="modal-content">
       <div class="modal-title">Brza Rezervacija Stola</div>
       <div class="form-group"><label>Ime i Prezime</label><input type="text" id="resName" placeholder="Petar Petrović"></div>
-      <div class="form-group"><label>Broj Osoba</label><input type="number" id="resGuests" value="2"></div>
+      <div class="form-group"><label>Broj Osoba</label><input type="number" id="resGuests" value="2" min="1" max="20"></div>
       <div class="form-group"><label>Datum i Vreme</label><input type="datetime-local" id="resDateTime"></div>
-      <button class="btn-submit" onclick="submitReservation()">Potvrdi Rezervaciju</button>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeReservationModal()">Otkaži</button>
+        <button class="btn-submit" onclick="submitReservation()">Potvrdi</button>
+      </div>
     </div>
   </div>
 
@@ -152,12 +165,18 @@
       document.getElementById("keyModal").style.display = "flex";
     }
 
+    function closeKeyModal() {
+      document.getElementById("keyModal").style.display = "none";
+    }
+
     function saveApiKey() {
       const key = document.getElementById("apiKeyInput").value.trim();
       if (key) {
         localStorage.setItem("demo_gemini_key", key);
-        document.getElementById("keyModal").style.display = "none";
-        alert("Ključ je uspešno sačuvan na ovom uređaju!");
+        closeKeyModal();
+        appendMessage("✅ API ključ je uspešno sačuvan na ovom uređaju. Postavite pitanje konobaru!", "bot-msg");
+      } else {
+        alert("Molimo vas unesite ispravan ključ.");
       }
     }
 
@@ -166,7 +185,7 @@
       const text = inputEl.value.trim();
       if (!text) return;
 
-      const apiKey = getApiKey();
+      const apiKey = getApiKey().trim();
       if (!apiKey) {
         openKeyModal();
         return;
@@ -179,7 +198,7 @@
       chatHistory.push({ role: "user", parts: [{ text: text }] });
 
       try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -191,16 +210,18 @@
         const data = await response.json();
         showTyping(false);
 
-        if (data.candidates && data.candidates[0].content.parts[0].text) {
+        if (data.candidates && data.candidates[0] && data.candidates[0].content.parts[0].text) {
           const reply = data.candidates[0].content.parts[0].text;
           appendMessage(reply, "bot-msg");
           chatHistory.push({ role: "model", parts: [{ text: reply }] });
+        } else if (data.error) {
+          appendMessage(`⚠️ Google API Greška: ${data.error.message}`, "bot-msg");
         } else {
-          appendMessage("Proverite uneti API ključ na ikonici zupčanika (gore desno).", "bot-msg");
+          appendMessage("Izvinite, došlo je do neočekivane greške u odgovoru.", "bot-msg");
         }
       } catch (err) {
         showTyping(false);
-        appendMessage("Došlo je do greške pri povezivanju.", "bot-msg");
+        appendMessage("Mrežna greška. Proverite internet konekciju.", "bot-msg");
       }
     }
 
@@ -227,18 +248,30 @@
 
     function handleKeyPress(e) { if (e.key === "Enter") sendMessage(); }
 
+    /* Modal za rezervacije */
     function openReservationModal() { document.getElementById("resModal").style.display = "flex"; }
+    function closeReservationModal() { document.getElementById("resModal").style.display = "none"; }
+    
     function submitReservation() {
       const name = document.getElementById("resName").value.trim();
       const guests = document.getElementById("resGuests").value;
       const datetime = document.getElementById("resDateTime").value;
-      if (!name || !datetime) return alert("Unesite podatke!");
-      
-      document.getElementById("resModal").style.display = "none";
-      appendMessage(`Uspešno poslata rezervacija za ${name} (${guests} osoba, ${datetime}).`, "bot-msg");
+
+      if (!name || !datetime) {
+        alert("Molimo vas unesite ime i vreme rezervacije.");
+        return;
+      }
+
+      const reservation = { name, guests, datetime, createdAt: new Date().toISOString() };
+      let bookings = JSON.parse(localStorage.getItem("gusto_bookings") || "[]");
+      bookings.push(reservation);
+      localStorage.setItem("gusto_bookings", JSON.stringify(bookings));
+
+      closeReservationModal();
+      appendMessage(`Uspešno poslata rezervacija za ${name} (${guests} osoba, ${datetime}). Očekujemo vas! 🥂`, "bot-msg");
     }
 
-    // Provera ključa pri prvom otvaranju
+    // Provera ključa pri učitavanju
     window.onload = function() {
       if (!getApiKey()) {
         openKeyModal();
