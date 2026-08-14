@@ -7,29 +7,68 @@
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121824; color: #fff; margin: 0; padding: 20px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .header-btns { display: flex; gap: 10px; }
     .chat-box { flex: 1; overflow-y: auto; background: #1a2232; border-radius: 12px; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
     .msg { padding: 10px 14px; border-radius: 10px; max-width: 80%; line-height: 1.4; word-break: break-word; }
     .bot { background: #2a3447; align-self: flex-start; }
     .user { background: #f59e0b; color: #000; align-self: flex-end; font-weight: 500; }
-    .input-box { display: flex; gap: 10px; margin-top: 15px; }
+    .typing { font-style: italic; opacity: 0.7; }
+    
+    /* Brzi dugmići */
+    .quick-replies { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0 5px 0; scrollbar-width: none; }
+    .quick-replies::-webkit-scrollbar { display: none; }
+    .quick-btn { background: #2a3447; color: #f59e0b; border: 1px solid #f59e0b; padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; whitespace: nowrap; flex-shrink: 0; transition: all 0.2s ease; }
+    .quick-btn:active { background: #f59e0b; color: #000; }
+
+    .input-box { display: flex; gap: 10px; margin-top: 5px; }
     input { flex: 1; padding: 12px; border-radius: 8px; border: none; background: #2a3447; color: #fff; outline: none; font-size: 16px; }
-    button { padding: 12px 20px; border-radius: 8px; border: none; background: #f59e0b; color: #000; font-weight: bold; cursor: pointer; font-size: 18px; }
+    button.send-btn { padding: 12px 20px; border-radius: 8px; border: none; background: #f59e0b; color: #000; font-weight: bold; cursor: pointer; font-size: 18px; }
+
+    /* Modal za pregled rezervacija */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; z-index: 100; }
+    .modal-content { background: #1a2232; border-radius: 12px; padding: 20px; max-width: 500px; width: 100%; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a3447; padding-bottom: 10px; margin-bottom: 15px; }
+    .res-card { background: #2a3447; padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #f59e0b; }
+    .close-btn { background: #ff6b6b; color: #fff; border: none; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; }
   </style>
 </head>
 <body>
 
   <div class="header">
     <h2>Restoran "Gusto"</h2>
-    <button onclick="setApiKey()" style="background:none; color:#fff;">⚙️</button>
+    <div class="header-btns">
+      <button onclick="toggleModal()" style="background:none; color:#fff;" title="Pregled rezervacija">📋</button>
+      <button onclick="setApiKey()" style="background:none; color:#fff;" title="Podešavanje API ključa">⚙️</button>
+    </div>
   </div>
 
   <div class="chat-box" id="chat">
     <div class="msg bot">Dobar dan! Ja sam Vaš digitalni konobar. Izvolite, šta Vas zanima iz naše ponude? 🍽️</div>
   </div>
 
+  <!-- Brzi odgovori -->
+  <div class="quick-replies">
+    <button class="quick-btn" onclick="sendQuickReply('Prikaži mi jelovnik')">🍽️ Jelovnik</button>
+    <button class="quick-btn" onclick="sendQuickReply('Želim da rezervisem sto')">📅 Rezervacija</button>
+    <button class="quick-btn" onclick="sendQuickReply('Koje je vaše radno vreme?')">🕒 Radno vreme</button>
+    <button class="quick-btn" onclick="sendQuickReply('Gde se nalazite?')">📍 Lokacija</button>
+  </div>
+
   <div class="input-box">
     <input type="text" id="userInput" placeholder="Pitajte konobara..." onkeypress="if(event.key==='Enter') sendMsg()">
-    <button type="button" onclick="sendMsg()">></button>
+    <button class="send-btn" type="button" onclick="sendMsg()">></button>
+  </div>
+
+  <!-- Modal panel za rezervacije -->
+  <div class="modal" id="resModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="margin:0;">Evidencija Rezervacija</h3>
+        <button class="close-btn" onclick="toggleModal()">X</button>
+      </div>
+      <div id="resList">Nema zabeleženih rezervacija.</div>
+      <button onclick="clearReservations()" style="margin-top:15px; width:100%; background:#ff6b6b; color:#fff; font-size:14px; padding:8px;">Obriši sve rezervacije</button>
+    </div>
   </div>
 
   <script>
@@ -72,7 +111,8 @@ PRAVILA PONAŠANJA:
    - Datum
    - Tačno vreme
    - Broj osoba
-   Kada ti gost da sve ove podatke, potvrdno i jasno mu reci da je rezervacija zabeležena.`;
+   Kada ti gost da sve ove podatke, potvrdno mu reci da je rezervacija zabeležena i u okviru svoje poruke na samom kraju dodaj tajni JSON kod u tačno ovom formatu:
+   [[REZERVACIJA:{"ime":"Ime", "datum":"Datum", "vreme":"Vreme", "osoba":"Broj"}]]`;
 
     let chatHistory = [];
 
@@ -83,6 +123,55 @@ PRAVILA PONAŠANJA:
         localStorage.setItem('gemini_api_key', key.trim());
         alert("API ključ je sačuvan!");
       }
+    }
+
+    function toggleModal() {
+      const modal = document.getElementById('resModal');
+      if (modal.style.display === 'flex') {
+        modal.style.display = 'none';
+      } else {
+        renderReservations();
+        modal.style.display = 'flex';
+      }
+    }
+
+    function saveReservation(data) {
+      let reservations = JSON.parse(localStorage.getItem('gusto_reservations') || '[]');
+      reservations.push({ ...data, timestamp: new Date().toLocaleString('sr-RS') });
+      localStorage.setItem('gusto_reservations', JSON.stringify(reservations));
+    }
+
+    function renderReservations() {
+      const listEl = document.getElementById('resList');
+      const reservations = JSON.parse(localStorage.getItem('gusto_reservations') || '[]');
+      
+      if (reservations.length === 0) {
+        listEl.innerHTML = '<p style="opacity:0.7;">Nema zabeleženih rezervacija.</p>';
+        return;
+      }
+
+      listEl.innerHTML = reservations.map((r) => `
+        <div class="res-card">
+          <strong>👤 ${r.ime || 'N/A'}</strong><br>
+          📅 Datum: ${r.datum || 'N/A'}<br>
+          ⏰ Vreme: ${r.vreme || 'N/A'}<br>
+          👥 Broj osoba: ${r.osoba || 'N/A'}<br>
+          <small style="opacity:0.5;">Zabeleženo: ${r.timestamp}</small>
+        </div>
+      `).join('');
+    }
+
+    function clearReservations() {
+      if (confirm('Da li ste sigurni da želite obrisati sve rezervacije?')) {
+        localStorage.removeItem('gusto_reservations');
+        renderReservations();
+      }
+    }
+
+    function sendQuickReply(text) {
+      const input = document.getElementById('userInput');
+      input.value = text;
+      sendMsg();
     }
 
     async function sendMsg() {
@@ -100,9 +189,16 @@ PRAVILA PONAŠANJA:
       // Prikaz korisničke poruke
       chat.innerHTML += `<div class="msg user">${text}</div>`;
       input.value = '';
+      
+      // Indikator kucanja
+      const typingDiv = document.createElement('div');
+      typingDiv.className = 'msg bot typing';
+      typingDiv.id = 'typingIndicator';
+      typingDiv.innerText = 'Konobar piše...';
+      chat.appendChild(typingDiv);
       chat.scrollTop = chat.scrollHeight;
 
-      // Dodavanje u istoriju razgovora
+      // Dodajemo u istoriju
       chatHistory.push({ role: 'user', parts: [{ text: text }] });
 
       try {
@@ -119,6 +215,10 @@ PRAVILA PONAŠANJA:
 
         const data = await response.json();
 
+        // Ukloni indikator kucanja
+        const typingEl = document.getElementById('typingIndicator');
+        if (typingEl) typingEl.remove();
+
         if (!response.ok) {
           const errDetail = data.error ? data.error.message : 'Greška pri odgovoru';
           throw new Error(`[Kod ${response.status}] ${errDetail}`);
@@ -127,10 +227,22 @@ PRAVILA PONAŠANJA:
         if (data.candidates && data.candidates[0].content.parts[0].text) {
           let reply = data.candidates[0].content.parts[0].text;
           
+          // Provera da li odgovor sadrži podatke za rezervaciju
+          const resMatch = reply.match(/\[\[REZERVACIJA:(.*?)\]\]/);
+          if (resMatch) {
+            try {
+              const resData = JSON.parse(resMatch[1]);
+              saveReservation(resData);
+              reply = reply.replace(/\[\[REZERVACIJA:(.*?)\]\]/, '');
+            } catch (e) {
+              console.error('Greška pri parsovanju rezervacije:', e);
+            }
+          }
+
           // Čuvanje odgovora modela u istoriji
           chatHistory.push({ role: 'model', parts: [{ text: reply }] });
 
-          // Konverzija Markdown bold-a u HTML bold radi lepašeg prikaza
+          // Konverzija Markdown bold-a u HTML bold
           reply = reply.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
 
           chat.innerHTML += `<div class="msg bot">${reply}</div>`;
@@ -139,6 +251,8 @@ PRAVILA PONAŠANJA:
         }
 
       } catch (err) {
+        const typingEl = document.getElementById('typingIndicator');
+        if (typingEl) typingEl.remove();
         chat.innerHTML += `<div class="msg bot" style="color:#ff6b6b;">${err.message}</div>`;
       }
 
